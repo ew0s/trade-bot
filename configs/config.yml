@@ -11,21 +11,21 @@ postgreDatabase:
   port: 5432
   username: tkbiyuywcczfsd
   dbname:  d5ikvg4dou3e5f
-  sslmode: disabled
+  sslmode: enabled
 
 redisDatabase:
-  host: ec2-34-192-8-209.compute-1.amazonaws.com
-  port: 20810
-  password: pa9a2100753e15116a424cdc9f7d960dcabdbcbdf5b5173718b85da33216f55b6
+  host: redis-18074.c290.ap-northeast-1-2.ec2.cloud.redislabs.com
+  port: 18074
+  password: 2nw6DVEssHfAh4SEpCGtlTKu3jTJb9Dv
 
 kraken:
-  apiurl: (string)
+  apiurl: url
 
 krakenWS:
   requests:
-    writeWaitInSeconds: (int) 10 by default
-    pongWaitInSeconds: (int) 60 by default
-    pingPeriodInSeconds: (int) 10 by default
-    maxMessageSize: (int) 512 by default
+    writeWaitInSeconds: 10
+    pongWaitInSeconds: 60
+    pingPeriodInSeconds: 10
+    maxMessageSize: 512
   kraken:
-    wsapiurl: (string)
+    wsapiurl: url
