@@ -1,1 +1,1 @@
-web: /bin/trade-bot
+hweb: /bin/trade-bot
