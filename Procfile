@@ -1,1 +1,1 @@
-hweb: trading-bot
+web: /bin/api
