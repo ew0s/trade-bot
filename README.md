@@ -80,6 +80,7 @@ A cryptocurrency trading bot supporting kraken futures written in Golang.
     redisDatabase:
       host: (string) example - localhost
       port: (string)
+      password: (string)
     
     kraken:
       apiurl: (string)

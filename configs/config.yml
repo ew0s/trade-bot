@@ -7,15 +7,16 @@ client:
 #  webhookUrl: (string) example service for webhooks - ngrok
 
 postgreDatabase:
-  host: (string) example - localhost
-  port: (string) eample - 8000
-  username: (string)
-  dbname:  (string)
-  sslmode: (string)
+  host: ec2-44-194-54-186.compute-1.amazonaws.com
+  port: 5432
+  username: tkbiyuywcczfsd
+  dbname:  d5ikvg4dou3e5f
+  sslmode: disabled
 
 redisDatabase:
-  host: (string) example - localhost
-  port: (string)
+  host: ec2-34-192-8-209.compute-1.amazonaws.com
+  port: 20810
+  password: pa9a2100753e15116a424cdc9f7d960dcabdbcbdf5b5173718b85da33216f55b6
 
 kraken:
   apiurl: (string)

@@ -24,7 +24,7 @@ func NewRedisClient(cfg configs.RedisDatabaseConfiguration) (*redis.Client, erro
 
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: "",
+		Password: cfg.Password,
 		DB:       0,
 	})
 

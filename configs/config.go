@@ -40,8 +40,9 @@ type PostgreDatabaseConfiguration struct {
 }
 
 type RedisDatabaseConfiguration struct {
-	Host string
-	Port string
+	Host     string
+	Port     string
+	Password string
 }
 
 type KrakenConfiguration struct {

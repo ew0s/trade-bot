@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+
 	"trade-bot/configs"
 	"trade-bot/internal/app"
 	"trade-bot/internal/pkg/handler"
