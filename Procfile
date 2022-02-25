@@ -1,1 +1,1 @@
-web: trading-bot
+hweb: trading-bot
