@@ -1,0 +1,30 @@
+client:
+  # url of server
+  url: http://localhost:8000
+  
+#telegram:
+#  apiToken: (string) your telegram api token from bot father
+#  webhookUrl: (string) example service for webhooks - ngrok
+
+postgreDatabase:
+  host: (string) example - localhost
+  port: (string) eample - 8000
+  username: (string)
+  dbname:  (string)
+  sslmode: (string)
+
+redisDatabase:
+  host: (string) example - localhost
+  port: (string)
+
+kraken:
+  apiurl: (string)
+
+krakenWS:
+  requests:
+    writeWaitInSeconds: (int) 10 by default
+    pongWaitInSeconds: (int) 60 by default
+    pingPeriodInSeconds: (int) 10 by default
+    maxMessageSize: (int) 512 by default
+  kraken:
+    wsapiurl: (string)
