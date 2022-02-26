@@ -85,7 +85,7 @@ definitions:
     - public_api_key
     - username
     type: object
-host: https://trade-bot-is23.herokuapp.com/
+host: trade-bot-is23.herokuapp.com
 info:
   contact: {}
   description: API Server for Trade-bot Application
