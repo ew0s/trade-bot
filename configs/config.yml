@@ -1,3 +1,10 @@
+server:
+  port: 8000
+  websocket:
+    readBufferSize: 1024
+    writeBufferSize: 1024
+    checkOrigin: false
+
 client:
   # url of server
   url: http://localhost:8000
