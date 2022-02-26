@@ -48,7 +48,7 @@ const (
 // @version 1.0
 // @description API Server for Trade-bot Application
 
-// @host localhost:8000
+// @host https://trade-bot-is23.herokuapp.com/
 // @BasePath /
 
 // @securityDefinitions.apikey ApiKeyAuth
