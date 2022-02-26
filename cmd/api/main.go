@@ -142,6 +142,14 @@ func initConfig() (configs.Configuration, error) {
 
 	var c configs.Configuration
 	err := viper.Unmarshal(&c)
+
 	c.PostgreDatabase.Password = os.Getenv("DB_PASSWORD")
+
+	// reading heroku port if exists
+	herokuPort := os.Getenv("PORT")
+	if herokuPort != "" {
+		c.Server.Port = herokuPort
+	}
+
 	return c, err
 }
