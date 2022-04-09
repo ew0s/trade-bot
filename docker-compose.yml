@@ -16,7 +16,7 @@ services:
     restart: always
     image: postgres:latest
     volumes:
-    - ./.database/postgres/data:/var/lib/postgressql/data
+    - ./.database/trade-bot-postgres/data:/var/lib/postgressql/data
     environment:
       - POSTGRES_PASSWORD=qwerty
     ports:
