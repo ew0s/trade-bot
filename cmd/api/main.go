@@ -2,154 +2,114 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
-	"trade-bot/configs"
-	"trade-bot/internal/app"
-	"trade-bot/internal/pkg/handler"
-	"trade-bot/internal/pkg/repository"
-	"trade-bot/internal/pkg/repository/postgresRepo"
-	"trade-bot/internal/pkg/repository/redisRepo"
-	"trade-bot/internal/pkg/service"
-	"trade-bot/internal/pkg/tradeAlgorithm"
-	"trade-bot/internal/pkg/web"
-	"trade-bot/pkg/krakenFuturesSDK"
-	"trade-bot/pkg/krakenFuturesWSSDK"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
+	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
+
+	"github.com/ew0s/trade-bot/cmd/api/handler"
+	apiservice "github.com/ew0s/trade-bot/internal/api/service"
+	"github.com/ew0s/trade-bot/internal/repos/postgres"
+	"github.com/ew0s/trade-bot/internal/repos/redis"
+	"github.com/ew0s/trade-bot/internal/service"
+	"github.com/ew0s/trade-bot/pkg/api"
+	"github.com/ew0s/trade-bot/pkg/httputils"
+	logsetup "github.com/ew0s/trade-bot/pkg/log" // init logrus
+	"github.com/ew0s/trade-bot/pkg/resource"
 )
 
-var (
-	ErrUnableToInitConfig           = errors.New("unable to init config files")
-	ErrReadConfig                   = errors.New("read config")
-	ErrRunServer                    = errors.New("run server")
-	ErrUnableToConnectToDB          = errors.New("unable to connect to database")
-	ErrUnableToConnectToJWTDB       = errors.New("unable to connect to jwt databased")
-	ErrUnableToLoadEnvVariables     = errors.New("unable to load enviroment variables")
-	ErrCouldNotShutdownServer       = errors.New("could not shut down server normally")
-	ErrCouldNotCloseDBConnection    = errors.New("could not close db connection normally")
-	ErrCouldNotCloseRedisConnection = errors.New("could not close redis connection normally")
-)
+//go:generate configer -app-name api -env local
 
-const (
-	publicAPIKey  = "PUBLIC_API_KEY"
-	privateAPIKey = "PRIVATE_API_KEY"
-)
+// @title        Trade-bot API
+// @version      1.0
+// @description  API Server for Trade-bot Application
 
-// @title Trade-bot API
-// @version 1.0
-// @description API Server for Trade-bot Application
+// @BasePath  /trade-bot/api/v1
 
-// @host trade-bot-is23.herokuapp.com
-// @BasePath /
-
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
-
+// @securityDefinitions.apikey  ApiKeyAuth
+// @in                          header
+// @name                        Authorization
 func main() {
-	config, err := initConfig()
+	config, err := mustParseAppConfig()
 	if err != nil {
-		log.Panicf("%s: %s", ErrUnableToInitConfig, err)
+		log.WithError(err).Fatalf("can't parse config")
 	}
 
-	db, err := postgresRepo.NewPostgresDB(config.PostgreDatabase)
+	logger := logsetup.Setup(config.Log)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	db, err := postgres.NewPostgresDB(config.Postgres)
 	if err != nil {
-		log.Panicf("%s: %s", ErrUnableToConnectToDB, err)
+		logger.WithError(err).Fatalf("can't create postgres db")
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Panicf("%s: %s", ErrCouldNotCloseDBConnection, err)
-		}
-	}()
+	defer resource.Close(logger, db)
 
-	redisClient, err := redisRepo.NewRedisClient(config.RedisDatabase)
+	redisClient, err := redis.NewRedisClient(ctx, config.Redis)
 	if err != nil {
-		log.Panicf("%s: %s", ErrUnableToConnectToJWTDB, err)
+		logger.WithError(err).Fatalf("can't create redis client")
 	}
-	defer func() {
-		if err := redisClient.Close(); err != nil {
-			log.Panicf("%s: %s", ErrCouldNotCloseRedisConnection, err)
-		}
-	}()
+	defer resource.Close(logger, redisClient)
 
-	krakenAPI := krakenFuturesSDK.NewAPI(os.Getenv(publicAPIKey), os.Getenv(privateAPIKey), config.Kraken.APIURL)
-	krakenWSAPI := krakenFuturesWSSDK.NewWSAPI(config.KrakenWS)
+	jwtService := service.NewJWTService(config.JWT.SigningKey, config.JWT.ExpirationDuration)
 
-	repo := repository.NewRepository(db, redisClient)
-	newWeb := web.NewWeb(krakenAPI, krakenWSAPI)
-	newTrader := tradeAlgorithm.NewTradeAlgorithm(newWeb)
+	userIdentityService := apiservice.NewUserIdentity(jwtService)
+	userIdentity := handler.NewUserIdentity(userIdentityService)
 
-	validate := validator.New()
-	upgrader := websocket.Upgrader{
-		WriteBufferSize: config.Server.Websocket.WriteBufferSize,
-		ReadBufferSize:  config.Server.Websocket.ReadBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return config.Server.Websocket.CheckOrigin
-		},
+	authRepo := postgres.NewAuth(db)
+	identityRepo := redis.NewJWTRedis(redisClient)
+	authService := apiservice.NewAuth(authRepo, identityRepo, jwtService)
+	authHandler := handler.NewAuth(authService, userIdentity)
+
+	r := api.MakeRoutes("/api/v1/", []chi.Router{
+		authHandler.Routes(),
+	})
+
+	servers := []*httputils.Server{
+		httputils.NewServer(config.ListenAddr, r),
 	}
 
-	services := service.NewService(repo, newWeb, newTrader)
-	handlers := handler.NewHandler(services, validate, &upgrader)
+	for i := range servers {
+		go func(srv *httputils.Server) {
+			if err = srv.Run(); err != http.ErrServerClosed {
+				logger.WithError(err).Fatalf("server cant't listen requests")
+			}
+		}(servers[i])
+
+		logger.Info(servers[i].Info())
+	}
 
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
 
-	srv := new(app.Server)
+	signal.Ignore(syscall.SIGHUP, syscall.SIGPIPE)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
-		if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil && err != http.ErrServerClosed {
-			log.Panicf("%s: %s", ErrRunServer, err)
+		<-interrupt
+
+		logger.Info("interrupt signal caught")
+		logger.Info("Trade bot server shutting down")
+
+		cancel()
+
+		for _, server := range servers {
+			server := server
+
+			go func() {
+				if err = server.Shutdown(ctx); err != nil {
+					logger.WithError(err).Fatalf("can't gracefully shotdown server")
+				}
+			}()
 		}
 	}()
 
-	log.Info("Trade bot server started")
+	logger.Info("Trade bot server started")
 
-	<-interrupt
+	<-ctx.Done()
 
-	log.Info("interrupt signal caught")
-	log.Info("Trade bot server shutting down")
-
-	if err := srv.Shutdown(context.Background()); err != nil {
-		log.Panicf("%s: %s", ErrCouldNotShutdownServer, err)
-	}
-
-	log.Info("Trade bot server shut down")
-}
-
-func initConfig() (configs.Configuration, error) {
-	viper.SetConfigName("config")
-	viper.AddConfigPath("configs")
-	viper.AddConfigPath(".")
-	viper.SetConfigType("yml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			log.Fatal(fmt.Errorf("%s: %s", ErrReadConfig, err))
-		}
-	}
-
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(fmt.Errorf("%s: %s", ErrUnableToLoadEnvVariables, err))
-	}
-
-	var c configs.Configuration
-	err := viper.Unmarshal(&c)
-
-	c.PostgreDatabase.Password = os.Getenv("DB_PASSWORD")
-
-	// reading heroku port if exists
-	herokuPort := os.Getenv("PORT")
-	if herokuPort != "" {
-		c.Server.Port = herokuPort
-	}
-
-	return c, err
+	logger.Info("Trade bot has been terminated")
 }

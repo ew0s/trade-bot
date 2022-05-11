@@ -1,0 +1,23 @@
+listen_addr: :5000
+log:
+  project: api
+  format: text
+  level: info
+  env: local
+  disable_stack_trace: false
+base_path: ""
+postgres:
+  host: localhost
+  port: "5432"
+  credentials:
+    username: trade_bot
+    password: trade_bot
+  db_name: trade_bot
+  ssl_mode: disable
+redis:
+  host: localhost
+  port: "6379"
+  password: trade-bot
+jwt:
+  signing_key: ${JWT_SIGNING_KEY}
+  expiration_duration: 5m0s

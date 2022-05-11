@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:12.9
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trade_bot
+      POSTGRES_DB: trade_bot
+      POSTGRES_PASSWORD: trade_bot
+    volumes:
+      - ~/trade-bot-postgres/data:/var/lib/postgressql/data/:rw
+
+
+  redis:
+    restart: always
+    image: redis:alpine
+    command: >
+      --requirepass trade-bot
+    ports:
+      - "6379:6379"
+    volumes:
+      - ~/redis-data:/var/lib/redis
+      - ~/redis.conf:/usr/local/etc/redis/redis.conf
