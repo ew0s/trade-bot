@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -9,16 +10,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
-	_ "github.com/swaggo/http-swagger/example/go-chi/docs"
+	"github.com/swaggo/swag"
 
 	"github.com/ew0s/trade-bot/cmd/api/handler"
+	_ "github.com/ew0s/trade-bot/cmd/api/swagger" // read swagger doc
 	apiservice "github.com/ew0s/trade-bot/internal/api/service"
 	"github.com/ew0s/trade-bot/internal/repos/postgres"
 	"github.com/ew0s/trade-bot/internal/repos/redis"
 	"github.com/ew0s/trade-bot/internal/service"
 	"github.com/ew0s/trade-bot/pkg/api"
 	"github.com/ew0s/trade-bot/pkg/httputils"
-	logsetup "github.com/ew0s/trade-bot/pkg/log" // init logrus
+	logsetup "github.com/ew0s/trade-bot/pkg/log"
+	"github.com/ew0s/trade-bot/pkg/openapi"
 	"github.com/ew0s/trade-bot/pkg/resource"
 )
 
@@ -65,9 +68,16 @@ func main() {
 	authService := apiservice.NewAuth(authRepo, identityRepo, jwtService)
 	authHandler := handler.NewAuth(authService, userIdentity)
 
-	r := api.MakeRoutes("/api/v1/", []chi.Router{
+	r := api.MakeRoutes(config.BasePath, []chi.Router{
 		authHandler.Routes(),
 	})
+
+	openapiHandler, err := setupOpenapiHandler(config.DocsPath)
+	if err != nil {
+		log.WithError(err).Fatalf("can't setup openapi handler")
+	}
+
+	setupDocsRoutes(r, openapiHandler, config.DocsPath)
 
 	servers := []*httputils.Server{
 		httputils.NewServer(config.ListenAddr, r),
@@ -112,4 +122,26 @@ func main() {
 	<-ctx.Done()
 
 	logger.Info("Trade bot has been terminated")
+}
+
+func setupOpenapiHandler(docsPath string) (*openapi.Handler, error) {
+	doc, err := swag.ReadDoc()
+	if err != nil {
+		return nil, fmt.Errorf("reading swagger (make sure doc import is presented): %w", err)
+	}
+
+	openapiHandler, err := openapi.NewHandler(docsPath, doc)
+	if err != nil {
+		return nil, fmt.Errorf("initializing openapi handler: %w", err)
+	}
+
+	return openapiHandler, nil
+}
+
+func setupDocsRoutes(r chi.Router, openapiHandler *openapi.Handler, docsPath string) {
+	r.Route(docsPath, func(r chi.Router) {
+		r.Get(openapi.DocsJSONPath, openapiHandler.DocJSON)
+		r.Get(openapi.DocsIndexPath, openapiHandler.Index)
+		r.Get("/*", openapiHandler.RedirectToIndex)
+	})
 }

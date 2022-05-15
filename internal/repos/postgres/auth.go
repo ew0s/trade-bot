@@ -5,9 +5,10 @@ import (
 	"fmt"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
+
 	"github.com/ew0s/trade-bot/internal/domain/entities"
 	"github.com/ew0s/trade-bot/internal/repos/postgres/schema"
-	"github.com/jmoiron/sqlx"
 )
 
 type auth struct {
@@ -21,10 +22,10 @@ func NewAuth(db *sqlx.DB) *auth {
 func (r *auth) CreateUser(ctx context.Context, user entities.User) (string, error) {
 	q := goqu.
 		New("postgres", r.db).
-		Insert(user).
-		Into(schema.Users).
-		Returning(goqu.C("uid")).
+		Insert(goqu.T(schema.Users)).
+		Rows(user).
 		Prepared(true).
+		Returning(goqu.C("uid")).
 		Executor()
 
 	var uid string

@@ -13,6 +13,8 @@ var (
 		appAPI: func(ctx configCtx) interface{} {
 			return appcofig.API{
 				ListenAddr: ":5000",
+				BasePath:   "/trade-bot/api/v1",
+				DocsPath:   "/trade-bot/api/v1/docs",
 				Log:        logConfiguration(ctx),
 				Postgres:   postgresConfiguration(ctx),
 				Redis:      redisConfiguration(ctx),

@@ -5,7 +5,8 @@ log:
   level: info
   env: local
   disable_stack_trace: false
-base_path: ""
+base_path: /trade-bot/api/v1
+docs_path: /trade-bot/api/v1/docs
 postgres:
   host: localhost
   port: "5432"

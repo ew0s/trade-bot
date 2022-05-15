@@ -3,14 +3,15 @@ package postgres
 import (
 	"fmt"
 
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres" // set postgres dialect for goqu builder
+	_ "github.com/jackc/pgx/stdlib"                     // driver for sql
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 
 	"github.com/ew0s/trade-bot/internal/configer/appcofig"
 )
 
 func NewPostgresDB(cfg appcofig.PostgresConfiguration) (*sqlx.DB, error) {
-	db, err := sqlx.Open("postgres", postgresDatasource(cfg))
+	db, err := sqlx.Open("pgx", postgresDatasource(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("connecting to postgres db: %w", err)
 	}
