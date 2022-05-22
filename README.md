@@ -132,7 +132,7 @@ A cryptocurrency trading bot supporting kraken futures written in Golang.
 * __run migrate__
 * 
     ```shell
-    migrate -path ./schema -database 'postgres://{postgres_username}:{postgres_password}@{host}:{port}/postgres?sslmode={sslmode}' up
+    migrate -path ./migrations -database 'postgres://{postgres_username}:{postgres_password}@{host}:{port}/postgres?sslmode={sslmode}' up
     ```
 
 * #### Then run server

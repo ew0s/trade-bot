@@ -1,0 +1,5 @@
+local:
+  dialect: postgres
+  datasource: postgres://trade_bot:trade_bot@localhost:5432/trade_bot?sslmode=disable&fallback_application_name=sql-migrate
+  dir: migrations/trade-bot
+  table: migrations
