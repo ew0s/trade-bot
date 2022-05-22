@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	stdlog "log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/ew0s/trade-bot/pkg/httputils/server"
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/swaggo/swag"
@@ -46,7 +46,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	db, err := postgres.NewPostgresDB(config.Postgres)
+	db, err := postgres.NewPostgresDB(ctx, config.Postgres)
 	if err != nil {
 		logger.WithError(err).Fatalf("can't create postgres db")
 	}
@@ -64,7 +64,7 @@ func main() {
 	userIdentity := handler.NewUserIdentity(userIdentityService)
 
 	authRepo := postgres.NewAuth(db)
-	identityRepo := redis.NewJWTRedis(redisClient)
+	identityRepo := redis.NewIdentity(redisClient)
 	authService := apiservice.NewAuth(authRepo, identityRepo, jwtService)
 	authHandler := handler.NewAuth(authService, userIdentity)
 
@@ -77,20 +77,20 @@ func main() {
 		log.WithError(err).Fatalf("can't setup openapi handler")
 	}
 
-	setupDocsRoutes(r, openapiHandler, config.DocsPath)
+	setupDocRoutes(r, openapiHandler, config.DocsPath)
 
-	servers := []*server.Server{
-		server.NewServer(config.ListenAddr, r),
+	servers := []*http.Server{
+		{Addr: config.ListenAddr, Handler: r, ErrorLog: stdlog.New(logger.Logger.Out, "api", 0)},
 	}
 
 	for i := range servers {
-		go func(srv *server.Server) {
-			if err = srv.Run(); err != http.ErrServerClosed {
-				logger.WithError(err).Fatalf("server cant't listen requests")
+		logger.Infof("server listening on %s", servers[i].Addr)
+
+		go func(srv *http.Server) {
+			if err = srv.ListenAndServe(); err != http.ErrServerClosed {
+				logger.WithError(err).Fatalf("server can't listen requests")
 			}
 		}(servers[i])
-
-		logger.Info(servers[i].Info())
 	}
 
 	interrupt := make(chan os.Signal, 1)
@@ -104,17 +104,13 @@ func main() {
 		logger.Info("interrupt signal caught")
 		logger.Info("Trade bot server shutting down")
 
-		cancel()
-
-		for _, server := range servers {
-			server := server
-
-			go func() {
-				if err = server.Shutdown(ctx); err != nil {
-					logger.WithError(err).Fatalf("can't gracefully shotdown server")
-				}
-			}()
+		for _, srv := range servers {
+			if err = srv.Shutdown(ctx); err != nil {
+				logger.WithError(err).Fatalf("can't close server listening on '%s'", srv.Addr)
+			}
 		}
+
+		cancel()
 	}()
 
 	logger.Info("Trade bot server started")
@@ -138,7 +134,7 @@ func setupOpenapiHandler(docsPath string) (*openapi.Handler, error) {
 	return openapiHandler, nil
 }
 
-func setupDocsRoutes(r chi.Router, openapiHandler *openapi.Handler, docsPath string) {
+func setupDocRoutes(r chi.Router, openapiHandler *openapi.Handler, docsPath string) {
 	r.Route(docsPath, func(r chi.Router) {
 		r.Get(openapi.DocsJSONPath, openapiHandler.DocJSON)
 		r.Get(openapi.DocsIndexPath, openapiHandler.Index)

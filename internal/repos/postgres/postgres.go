@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres" // set postgres dialect for goqu builder
@@ -10,8 +11,8 @@ import (
 	"github.com/ew0s/trade-bot/internal/configer/appcofig"
 )
 
-func NewPostgresDB(cfg appcofig.PostgresConfiguration) (*sqlx.DB, error) {
-	db, err := sqlx.Open("pgx", postgresDatasource(cfg))
+func NewPostgresDB(ctx context.Context, cfg appcofig.PostgresConfiguration) (*sqlx.DB, error) {
+	db, err := sqlx.ConnectContext(ctx, "pgx", postgresDatasource(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("connecting to postgres db: %w", err)
 	}

@@ -10,15 +10,15 @@ import (
 	"github.com/ew0s/trade-bot/internal/domain/entities"
 )
 
-type IdentityRepo struct {
+type Identity struct {
 	client *redis.Client
 }
 
-func NewJWTRedis(client *redis.Client) *IdentityRepo {
-	return &IdentityRepo{client: client}
+func NewIdentity(client *redis.Client) *Identity {
+	return &Identity{client: client}
 }
 
-func (r *IdentityRepo) SetAccessToken(ctx context.Context, userUID string, tokenDetails entities.TokenDetails) error {
+func (r *Identity) SetAccessToken(ctx context.Context, userUID string, tokenDetails entities.TokenDetails) error {
 	at := time.Unix(tokenDetails.AtExpires, 0)
 	now := time.Now()
 
@@ -31,7 +31,7 @@ func (r *IdentityRepo) SetAccessToken(ctx context.Context, userUID string, token
 	return nil
 }
 
-func (r *IdentityRepo) GetJWTUserUID(td entities.TokenDetails) (string, error) {
+func (r *Identity) GetJWTUserUID(td entities.TokenDetails) (string, error) {
 	userUID, err := r.client.Get(context.Background(), td.AccessUUID).Result()
 	if err != nil {
 		return "", fmt.Errorf("getting from redis: %w", err)
@@ -40,7 +40,7 @@ func (r *IdentityRepo) GetJWTUserUID(td entities.TokenDetails) (string, error) {
 	return userUID, nil
 }
 
-func (r *IdentityRepo) RemoveAccessToken(ctx context.Context, accessUID string) error {
+func (r *Identity) RemoveAccessToken(ctx context.Context, accessUID string) error {
 	_, err := r.client.Del(ctx, accessUID).Result()
 	if err != nil {
 		return fmt.Errorf("deleting from redis: %w", err)
