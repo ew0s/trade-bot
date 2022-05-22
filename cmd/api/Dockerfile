@@ -1,22 +1,11 @@
 FROM golang:1.17-buster
 
 RUN mkdir /build
-WORKDIR /buid
+WORKDIR /build
 COPY . .
 RUN make bin
 
-# install psql
-RUN apt-get update
-RUN apt-get -y install postgresql-client
+RUN go build -o trade-bot-api ./cmd/api/main.go
 
-# make wait for postgres executable
-RUN chmod +x wait-for-postgres.sh
-
-
-RUN go mod download
-RUN go build -o trade-bot ./cmd/api/main.go
-RUN go build -o trade-bot-client ./pkg/telegramBot/cmd/api/main.go
-
-CMD ["./trade-bot"]
-CMD ["./trade-bot-client"]
+CMD ["./trade-bot-api"]
 

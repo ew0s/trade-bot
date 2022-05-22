@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ew0s/trade-bot/pkg/httputils/server"
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/swaggo/swag"
@@ -19,7 +20,6 @@ import (
 	"github.com/ew0s/trade-bot/internal/repos/redis"
 	"github.com/ew0s/trade-bot/internal/service"
 	"github.com/ew0s/trade-bot/pkg/api"
-	"github.com/ew0s/trade-bot/pkg/httputils"
 	logsetup "github.com/ew0s/trade-bot/pkg/log"
 	"github.com/ew0s/trade-bot/pkg/openapi"
 	"github.com/ew0s/trade-bot/pkg/resource"
@@ -79,12 +79,12 @@ func main() {
 
 	setupDocsRoutes(r, openapiHandler, config.DocsPath)
 
-	servers := []*httputils.Server{
-		httputils.NewServer(config.ListenAddr, r),
+	servers := []*server.Server{
+		server.NewServer(config.ListenAddr, r),
 	}
 
 	for i := range servers {
-		go func(srv *httputils.Server) {
+		go func(srv *server.Server) {
 			if err = srv.Run(); err != http.ErrServerClosed {
 				logger.WithError(err).Fatalf("server cant't listen requests")
 			}

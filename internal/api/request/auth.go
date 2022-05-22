@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ew0s/trade-bot/pkg/httputils"
-	"github.com/go-chi/chi/v5"
+	"github.com/ew0s/trade-bot/pkg/httputils/request"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -16,15 +15,18 @@ type SignIn struct {
 }
 
 func (r *SignIn) Bind(req *http.Request) error {
-	uid := chi.URLParam(req, "uid")
+	uid, err := request.GetUIDFromQuery(req, true)
+	if err != nil {
+		return fmt.Errorf("getting uid from query: %w", err)
+	}
 
-	if err := json.NewDecoder(req.Body).Decode(r); err != nil {
+	if err = json.NewDecoder(req.Body).Decode(r); err != nil {
 		return fmt.Errorf("decoding body: %w", err)
 	}
 
 	r.UID = uid
 
-	if err := r.validate(); err != nil {
+	if err = r.validate(); err != nil {
 		return fmt.Errorf("validating SignIn: %w", err)
 	}
 
@@ -54,7 +56,7 @@ func (r *SignUp) Bind(req *http.Request) error {
 	}
 
 	if err := r.validate(); err != nil {
-		return fmt.Errorf("validating struct: %w", err)
+		return fmt.Errorf("validating SignUp: %w", err)
 	}
 
 	return nil
@@ -77,7 +79,7 @@ type Logout struct {
 }
 
 func (r *Logout) Bind(req *http.Request) error {
-	token, err := httputils.GetBearerToken(req)
+	token, err := request.GetBearerToken(req)
 	if err != nil {
 		return fmt.Errorf("getting bearer token: %w", err)
 	}

@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/ew0s/trade-bot/pkg/constant"
-	"github.com/ew0s/trade-bot/pkg/httputils"
+	"github.com/ew0s/trade-bot/pkg/httputils/baseresponse"
+	"github.com/ew0s/trade-bot/pkg/httputils/request"
 )
 
 type UserIdentityKey string
@@ -14,7 +15,7 @@ type UserIdentityKey string
 var userUID UserIdentityKey = "user_uid"
 
 type UserIdentityService interface {
-	GetUserUID(token string) (string, error)
+	GetUserUID(accessToken string) (string, error)
 }
 
 type UserIdentity struct {
@@ -27,17 +28,17 @@ func NewUserIdentity(service UserIdentityService) *UserIdentity {
 	}
 }
 
-func (h *UserIdentity) identity(next http.Handler) http.Handler {
+func (h *UserIdentity) identify(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken, err := httputils.GetBearerToken(r)
+		bearerToken, err := request.GetBearerToken(r)
 		if err != nil {
-			httputils.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
+			baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
 			return
 		}
 
 		uid, err := h.service.GetUserUID(bearerToken)
 		if err != nil {
-			httputils.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrUnauthorized, err))
+			baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrUnauthorized, err))
 			return
 		}
 

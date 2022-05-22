@@ -8,11 +8,11 @@ import (
 
 type Auth struct{}
 
-func (m Auth) MakeUser(req request.SignUp) entities.User {
+func (m Auth) MakeUser(req request.SignUp, passwordHash string) entities.User {
 	return entities.User{
 		Name:         req.Name,
 		Username:     req.Username,
-		PasswordHash: req.Password,
+		PasswordHash: passwordHash,
 	}
 }
 

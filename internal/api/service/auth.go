@@ -9,6 +9,7 @@ import (
 	"github.com/ew0s/trade-bot/internal/api/response"
 	"github.com/ew0s/trade-bot/internal/domain/entities"
 	"github.com/ew0s/trade-bot/pkg/constant"
+	"github.com/ew0s/trade-bot/pkg/security"
 )
 
 type AuthRepo interface {
@@ -43,7 +44,12 @@ func NewAuth(repo AuthRepo, identityRepo AuthIdentityRepo, jwtService JWTAuthSer
 }
 
 func (s *auth) SignUp(ctx context.Context, req request.SignUp) (response.SignUp, error) {
-	user := s.mapper.MakeUser(req)
+	passwordHash, err := security.GeneratePasswordHash(req.Password)
+	if err != nil {
+		return response.SignUp{}, fmt.Errorf("generating password hash: %w", err)
+	}
+
+	user := s.mapper.MakeUser(req, passwordHash)
 
 	uid, err := s.repo.CreateUser(ctx, user)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"github.com/ew0s/trade-bot/internal/api/request"
 	"github.com/ew0s/trade-bot/internal/api/response"
 	"github.com/ew0s/trade-bot/pkg/constant"
-	"github.com/ew0s/trade-bot/pkg/httputils"
+	"github.com/ew0s/trade-bot/pkg/httputils/baseresponse"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -37,7 +37,7 @@ func (h *Auth) Routes() chi.Router {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/sign-in", h.SignIn)
 		r.Post("/sign-up", h.SignUp)
-		r.With(h.userIdentity.identity).Delete("/logout", h.Logout)
+		r.With(h.userIdentity.identify).Delete("/logout", h.Logout)
 	})
 
 	return r
@@ -58,13 +58,13 @@ func (h *Auth) Routes() chi.Router {
 func (h *Auth) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req request.SignUp
 	if err := req.Bind(r); err != nil {
-		httputils.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
+		baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
 		return
 	}
 
 	resp, err := h.service.SignUp(r.Context(), req)
 	if err != nil {
-		httputils.RenderErr(w, r, err)
+		baseresponse.RenderErr(w, r, err)
 		return
 	}
 
@@ -85,17 +85,17 @@ func (h *Auth) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Failure      400    {object}  httputils.ErrResponse  "bad request"
 // @Failure      404    {object}  httputils.ErrResponse  "not found"
 // @Failure      500    {object}  httputils.ErrResponse  "internal server error"
-// @Router       /auth/sign-in [put]
+// @Router       /auth/sign-in [post]
 func (h *Auth) SignIn(w http.ResponseWriter, r *http.Request) {
 	var req request.SignIn
 	if err := req.Bind(r); err != nil {
-		httputils.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
+		baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrBadRequest, err))
 		return
 	}
 
 	resp, err := h.service.SignIn(r.Context(), req)
 	if err != nil {
-		httputils.RenderErr(w, r, err)
+		baseresponse.RenderErr(w, r, err)
 		return
 	}
 
@@ -116,12 +116,12 @@ func (h *Auth) SignIn(w http.ResponseWriter, r *http.Request) {
 func (h *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	var req request.Logout
 	if err := req.Bind(r); err != nil {
-		httputils.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrUnauthorized, err))
+		baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrUnauthorized, err))
 		return
 	}
 
 	if err := h.service.Logout(r.Context(), req); err != nil {
-		httputils.RenderErr(w, r, err)
+		baseresponse.RenderErr(w, r, err)
 		return
 	}
 
