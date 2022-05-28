@@ -5,10 +5,10 @@ import (
 )
 
 type User struct {
-	UID          string `db:"uid" goqu:"skipinsert,skipupdate"`
-	Name         string `db:"name"`
-	Username     string `db:"username"`
-	PasswordHash string `db:"password_hash"`
+	UID          string
+	Name         string
+	Username     string
+	PasswordHash string
 }
 
 func (e *User) ValidPassword(password string) bool {

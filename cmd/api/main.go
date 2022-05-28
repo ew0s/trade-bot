@@ -16,11 +16,11 @@ import (
 	"github.com/ew0s/trade-bot/cmd/api/handler"
 	_ "github.com/ew0s/trade-bot/cmd/api/swagger" // read swagger doc
 	apiservice "github.com/ew0s/trade-bot/internal/api/service"
+	logsetup "github.com/ew0s/trade-bot/internal/pkg/log"
 	"github.com/ew0s/trade-bot/internal/repos/postgres"
 	"github.com/ew0s/trade-bot/internal/repos/redis"
 	"github.com/ew0s/trade-bot/internal/service"
 	"github.com/ew0s/trade-bot/pkg/api"
-	logsetup "github.com/ew0s/trade-bot/pkg/log"
 	"github.com/ew0s/trade-bot/pkg/openapi"
 	"github.com/ew0s/trade-bot/pkg/resource"
 )
@@ -59,12 +59,12 @@ func main() {
 	defer resource.Close(logger, redisClient)
 
 	jwtService := service.NewJWTService(config.JWT.SigningKey, config.JWT.ExpirationDuration)
+	identityRepo := redis.NewIdentity(redisClient)
 
-	userIdentityService := apiservice.NewUserIdentity(jwtService)
+	userIdentityService := apiservice.NewUserIdentity(jwtService, identityRepo)
 	userIdentity := handler.NewUserIdentity(userIdentityService)
 
 	authRepo := postgres.NewAuth(db)
-	identityRepo := redis.NewIdentity(redisClient)
 	authService := apiservice.NewAuth(authRepo, identityRepo, jwtService)
 	authHandler := handler.NewAuth(authService, userIdentity)
 

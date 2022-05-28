@@ -36,26 +36,26 @@ const docTemplate = `{
                     "400": {
                         "description": "bad request",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "not found",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "internal server error",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     }
                 }
             }
         },
         "/auth/sign-in": {
-            "put": {
+            "post": {
                 "description": "method stands for signing in user",
                 "consumes": [
                     "application/json"
@@ -73,7 +73,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "user uid",
                         "name": "uid",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     },
                     {
@@ -96,19 +96,13 @@ const docTemplate = `{
                     "400": {
                         "description": "bad request",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "not found",
-                        "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "internal server error",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     }
                 }
@@ -149,13 +143,13 @@ const docTemplate = `{
                     "400": {
                         "description": "bad request",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "internal server error",
                         "schema": {
-                            "$ref": "#/definitions/httputils.ErrResponse"
+                            "$ref": "#/definitions/baseresponse.ErrResponse"
                         }
                     }
                 }
@@ -163,7 +157,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "httputils.ErrResponse": {
+        "baseresponse.ErrResponse": {
             "type": "object",
             "properties": {
                 "error": {

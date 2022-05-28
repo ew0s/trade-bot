@@ -1,7 +1,7 @@
 module github.com/ew0s/trade-bot
 
 // +heroku goVersion go1.17
-go 1.17
+go 1.18
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -12,6 +12,7 @@ require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gofrs/uuid v4.1.0+incompatible
+	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.4.0

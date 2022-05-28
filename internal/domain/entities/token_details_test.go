@@ -22,7 +22,7 @@ func TestNewTokenDetails(t *testing.T) {
 			duration: 1 * time.Minute,
 			expected: TokenDetails{
 				UserUID:   "6e00472a-0128-4adf-87a5-b4fc9a9f2bae",
-				AtExpires: time.Now().Add(1 * time.Minute).Unix(),
+				ExpiresAt: time.Now().Add(1 * time.Minute),
 			},
 		},
 	}
@@ -35,8 +35,7 @@ func TestNewTokenDetails(t *testing.T) {
 
 			require.NoError(t, err)
 
-			require.GreaterOrEqual(t, actual.AtExpires, tc.expected.AtExpires)
-			require.InDelta(t, tc.expected.AtExpires, actual.AtExpires, time.Second.Seconds())
+			require.WithinDuration(t, tc.expected.ExpiresAt, actual.ExpiresAt, time.Second*3)
 
 			require.Equal(t, uuidV4Len, len(actual.AccessUUID))
 		})

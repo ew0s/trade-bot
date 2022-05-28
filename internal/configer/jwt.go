@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	jwtSigningKeyEnvName = "${JWT_SIGNING_KEY}"
+	jwtHidedSigningKey = "${JWT_SIGNING_KEY}"
 )
 
 var (
@@ -15,12 +15,16 @@ var (
 		switch ctx.envName {
 		case Local:
 			return appcofig.JWTConfiguration{
-				SigningKey:         jwtSigningKeyEnvName,
+				SigningKey:         jwtSigningKey(ctx),
 				ExpirationDuration: jwtTokenExpirationDuration(ctx),
 			}
 		default:
 			return appcofig.JWTConfiguration{}
 		}
+	}
+
+	jwtSigningKey = func(ctx configCtx) string {
+		return jwtHidedSigningKey
 	}
 
 	jwtTokenExpirationDuration = func(ctx configCtx) time.Duration {

@@ -10,14 +10,9 @@ import (
 	"github.com/ew0s/trade-bot/pkg/httputils/request"
 )
 
-type UserIdentityKey string
-
-var userUID UserIdentityKey = "user_uid"
-
 type UserIdentityService interface {
-	GetUserUID(accessToken string) (string, error)
+	ValidAccessToken(ctx context.Context, accessToken string) (bool, error)
 }
-
 type UserIdentity struct {
 	service UserIdentityService
 }
@@ -36,13 +31,19 @@ func (h *UserIdentity) identify(next http.Handler) http.Handler {
 			return
 		}
 
-		uid, err := h.service.GetUserUID(bearerToken)
+		valid, err := h.service.ValidAccessToken(r.Context(), bearerToken)
 		if err != nil {
 			baseresponse.RenderErr(w, r, fmt.Errorf("%w: %s", constant.ErrUnauthorized, err))
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userUID, uid)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		if !valid {
+			baseresponse.RenderErr(w, r, fmt.Errorf(
+				"%w: %s", constant.ErrUnauthorized, fmt.Errorf("invalid access token")),
+			)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }

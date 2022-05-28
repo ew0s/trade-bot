@@ -10,7 +10,7 @@ import (
 type TokenDetails struct {
 	UserUID    string
 	AccessUUID string
-	AtExpires  int64
+	ExpiresAt  time.Time
 }
 
 func NewTokenDetails(userUID string, d time.Duration) (TokenDetails, error) {
@@ -18,7 +18,7 @@ func NewTokenDetails(userUID string, d time.Duration) (TokenDetails, error) {
 
 	td.UserUID = userUID
 
-	td.AtExpires = time.Now().Add(d).Unix()
+	td.ExpiresAt = time.Now().Add(d)
 
 	accessUUID, err := uuid.NewV4()
 	if err != nil {
@@ -28,4 +28,8 @@ func NewTokenDetails(userUID string, d time.Duration) (TokenDetails, error) {
 	td.AccessUUID = accessUUID.String()
 
 	return td, nil
+}
+
+func (e *TokenDetails) Expired() bool {
+	return e.ExpiresAt.Before(time.Now())
 }

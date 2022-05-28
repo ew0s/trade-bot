@@ -2,14 +2,16 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/doug-martin/goqu/v9"
-	"github.com/ew0s/trade-bot/pkg/constant"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/ew0s/trade-bot/internal/domain/entities"
-	"github.com/ew0s/trade-bot/internal/repos/postgres/schema"
+	"github.com/ew0s/trade-bot/internal/repos/postgres/internal"
+	"github.com/ew0s/trade-bot/internal/repos/postgres/mapper"
+	"github.com/ew0s/trade-bot/pkg/constant"
+	"github.com/ew0s/trade-bot/pkg/postgres"
 )
 
 type auth struct {
@@ -21,73 +23,43 @@ func NewAuth(db *sqlx.DB) *auth {
 }
 
 func (r *auth) CreateUser(ctx context.Context, user entities.User) (string, error) {
-	_, found, err := GetUserByUsername(ctx, r.db, user.Username)
-	if err != nil {
-		return "", fmt.Errorf("getting user by username: %w", err)
+	opts := &sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+		ReadOnly:  false,
 	}
-
-	if found {
-		return "", fmt.Errorf("getting user by username: already exists: %w", constant.ErrBadRequest)
-	}
-
-	q := goqu.
-		New("postgres", r.db).
-		Insert(goqu.T(schema.Users)).
-		Rows(user).
-		Prepared(true).
-		Returning(goqu.C("uid")).
-		Executor()
 
 	var uid string
 
-	if _, err := q.ScanValContext(ctx, &uid); err != nil {
-		return "", fmt.Errorf("executing query: %w", err)
+	if err := postgres.NewTxDoer(r.db).DoInTransaction(ctx, opts, func(tx *sql.Tx) error {
+		db := postgres.NewTxBuilder(tx)
+
+		_, found, err := internal.GetUserByUsername(ctx, db, user.Username)
+		if err != nil {
+			return fmt.Errorf("getting user by username: %w", err)
+		}
+
+		if found {
+			return fmt.Errorf("getting user by username: already exists: %w", constant.ErrBadRequest)
+		}
+
+		uid, err = internal.CreateUser(ctx, db, mapper.MakeModelUser(user))
+		if err != nil {
+			return fmt.Errorf("creating user: %w", err)
+		}
+
+		return nil
+	}); err != nil {
+		return "", fmt.Errorf("doing in transaction: %w", err)
 	}
 
 	return uid, nil
 }
 
 func (r *auth) GetUserByUID(ctx context.Context, uid string) (entities.User, bool, error) {
-	return GetUserByUID(ctx, r.db, uid)
-}
-
-func GetUserByUID(ctx context.Context, db *sqlx.DB, uid string) (entities.User, bool, error) {
-	q := goqu.New("postgres", db).
-		From(goqu.T(schema.Users)).
-		Select(entities.User{}).
-		Where(
-			goqu.C("uid").Eq(uid),
-		).
-		Prepared(true).
-		Executor()
-
-	var user entities.User
-
-	found, err := q.ScanStructContext(ctx, &user)
+	user, found, err := internal.GetUserByUID(ctx, postgres.NewBuilder(r.db.DB), uid)
 	if err != nil {
-		return entities.User{}, false, fmt.Errorf("scanning struct on query exec: %w", err)
+		return entities.User{}, false, fmt.Errorf("getting user by uid: %w", err)
 	}
 
-	return user, found, nil
-}
-
-func GetUserByUsername(ctx context.Context, db *sqlx.DB, username string) (entities.User, bool, error) {
-	q := goqu.
-		New("postgres", db).
-		From(goqu.T(schema.Users)).
-		Select(entities.User{}).
-		Where(
-			goqu.C("username").Eq(username),
-		).
-		Prepared(true).
-		Executor()
-
-	var user entities.User
-
-	found, err := q.ScanStructContext(ctx, &user)
-	if err != nil {
-		return entities.User{}, false, fmt.Errorf("scaning struct in query exec: %w", err)
-	}
-
-	return user, found, nil
+	return mapper.MakeEntityUser(user), found, nil
 }

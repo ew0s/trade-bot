@@ -1,6 +1,6 @@
 basePath: /trade-bot/api/v1
 definitions:
-  httputils.ErrResponse:
+  baseresponse.ErrResponse:
     properties:
       error:
         description: application-level error message, for debugging
@@ -41,29 +41,29 @@ paths:
         "400":
           description: bad request
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
         "404":
           description: not found
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
         "500":
           description: internal server error
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
       security:
       - ApiKeyAuth: []
       summary: logout user
       tags:
       - auth
   /auth/sign-in:
-    put:
+    post:
       consumes:
       - application/json
       description: method stands for signing in user
       operationId: sign-in-user
       parameters:
       - description: user uid
-        in: path
+        in: query
         name: uid
         required: true
         type: string
@@ -83,15 +83,11 @@ paths:
         "400":
           description: bad request
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
-        "404":
-          description: not found
-          schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
         "500":
           description: internal server error
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
       summary: sign in user
       tags:
       - auth
@@ -118,11 +114,11 @@ paths:
         "400":
           description: bad request
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
         "500":
           description: internal server error
           schema:
-            $ref: '#/definitions/httputils.ErrResponse'
+            $ref: '#/definitions/baseresponse.ErrResponse'
       summary: sign up user
       tags:
       - auth

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+
 	"github.com/ew0s/trade-bot/internal/domain/entities"
 )
 
@@ -42,7 +43,7 @@ func (s *jwtService) GenerateToken(userUID string) (string, entities.TokenDetail
 }
 
 func (s *jwtService) ExtractTokenMetadata(token string) (entities.TokenDetails, error) {
-	parsed, err := newParsedToken(token)
+	parsed, err := newParsedToken(token, s.tokenKeyFunc)
 	if err != nil {
 		return entities.TokenDetails{}, fmt.Errorf("creating parsed token: %w", err)
 	}
@@ -55,25 +56,18 @@ func (s *jwtService) ExtractTokenMetadata(token string) (entities.TokenDetails, 
 	return details, nil
 }
 
-type jwtToken jwt.Token
-
-func newSignedToken(userUID string, signingKey string, td entities.TokenDetails) (string, error) {
-	claims := jwt.MapClaims{}
-	claims[authorizedTokenClaim] = true
-	claims[accessUUIDTokenClaim] = td.AccessUUID
-	claims[userUIDTokenClaim] = userUID
-	claims[expiresTokenClaim] = td.AtExpires
-
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(signingKey)
-	if err != nil {
-		return "", fmt.Errorf("creating jwt token signed with string: %w", err)
+func (s *jwtService) tokenKeyFunc(token *jwt.Token) (interface{}, error) {
+	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		return nil, fmt.Errorf("getting token signing method: unexpected method: %s", token.Method.Alg())
 	}
 
-	return token, nil
+	return []byte(s.signingKey), nil
 }
 
-func newParsedToken(token string) (*jwtToken, error) {
-	verified, err := jwt.Parse(token, jwtToken{}.keyFunc)
+type jwtToken jwt.Token
+
+func newParsedToken(token string, keyFunc jwt.Keyfunc) (*jwtToken, error) {
+	verified, err := jwt.Parse(token, keyFunc)
 	if err != nil {
 		return nil, fmt.Errorf("parsing token: %w", err)
 	}
@@ -83,14 +77,6 @@ func newParsedToken(token string) (*jwtToken, error) {
 	}
 
 	return (*jwtToken)(verified), nil
-}
-
-func (t jwtToken) keyFunc(token *jwt.Token) (interface{}, error) {
-	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-		return nil, fmt.Errorf("getting token signing method: unexpected method: %s", token.Method.Alg())
-	}
-
-	return nil, nil
 }
 
 func (t *jwtToken) getDetails() (entities.TokenDetails, error) {
@@ -109,14 +95,34 @@ func (t *jwtToken) getDetails() (entities.TokenDetails, error) {
 		return entities.TokenDetails{}, fmt.Errorf("can't get accessUUID token claim")
 	}
 
-	atExpires, ok := claims[expiresTokenClaim].(int64)
+	atExpires, ok := claims[expiresTokenClaim].(string)
 	if !ok {
 		return entities.TokenDetails{}, fmt.Errorf("can't get expires token claim")
+	}
+
+	expTime, err := time.Parse(time.RFC3339, atExpires)
+	if err != nil {
+		return entities.TokenDetails{}, fmt.Errorf("parsing expires token claim: %w", err)
 	}
 
 	return entities.TokenDetails{
 		UserUID:    userUID,
 		AccessUUID: accessUUID,
-		AtExpires:  atExpires,
+		ExpiresAt:  expTime,
 	}, nil
+}
+
+func newSignedToken(userUID string, signingKey string, td entities.TokenDetails) (string, error) {
+	claims := jwt.MapClaims{}
+	claims[authorizedTokenClaim] = true
+	claims[userUIDTokenClaim] = userUID
+	claims[accessUUIDTokenClaim] = td.AccessUUID
+	claims[expiresTokenClaim] = td.ExpiresAt
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(signingKey))
+	if err != nil {
+		return "", fmt.Errorf("creating jwt token signed with string: %w", err)
+	}
+
+	return token, nil
 }

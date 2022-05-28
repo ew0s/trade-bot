@@ -22,7 +22,7 @@ type AuthIdentityRepo interface {
 	RemoveAccessToken(ctx context.Context, token string) error
 }
 
-type JWTAuthService interface {
+type AuthJWTService interface {
 	GenerateToken(userUID string) (string, entities.TokenDetails, error)
 	ExtractTokenMetadata(token string) (entities.TokenDetails, error)
 }
@@ -30,11 +30,11 @@ type JWTAuthService interface {
 type auth struct {
 	repo         AuthRepo
 	identityRepo AuthIdentityRepo
-	jwtService   JWTAuthService
+	jwtService   AuthJWTService
 	mapper       mapper.Auth
 }
 
-func NewAuth(repo AuthRepo, identityRepo AuthIdentityRepo, jwtService JWTAuthService) *auth {
+func NewAuth(repo AuthRepo, identityRepo AuthIdentityRepo, jwtService AuthJWTService) *auth {
 	return &auth{
 		repo:         repo,
 		identityRepo: identityRepo,
@@ -66,11 +66,11 @@ func (s *auth) SignIn(ctx context.Context, req request.SignIn) (response.SignIn,
 	}
 
 	if !found {
-		return response.SignIn{}, fmt.Errorf("getting user by uid: %w", constant.ErrNotFound)
+		return response.SignIn{}, fmt.Errorf("getting user by uid: not found: %w", constant.ErrBadRequest)
 	}
 
 	if !user.ValidPassword(req.Password) {
-		return response.SignIn{}, fmt.Errorf("validating password: invalid password: %w", constant.ErrBadRequest)
+		return response.SignIn{}, fmt.Errorf("validating password: incorrect password: %w", constant.ErrBadRequest)
 	}
 
 	token, tokenDetails, err := s.jwtService.GenerateToken(req.UID)
@@ -79,7 +79,7 @@ func (s *auth) SignIn(ctx context.Context, req request.SignIn) (response.SignIn,
 	}
 
 	if err = s.identityRepo.SetAccessToken(ctx, user.UID, tokenDetails); err != nil {
-		return response.SignIn{}, fmt.Errorf("setting access token")
+		return response.SignIn{}, fmt.Errorf("setting access token: %w", err)
 	}
 
 	return s.mapper.MakeSignInResponse(token), nil

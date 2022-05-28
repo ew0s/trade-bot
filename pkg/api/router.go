@@ -5,11 +5,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type Router interface {
-	Routes() chi.Router
-	BasePrefix() string
-}
-
 func MakeRoutes(basePath string, routers []chi.Router) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
