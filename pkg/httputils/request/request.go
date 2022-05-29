@@ -40,7 +40,7 @@ func GetBearerToken(r *http.Request) (string, error) {
 }
 
 func GetUIDFromQuery(r *http.Request, required bool) (string, error) {
-	if !r.URL.Query().Has(uidQueryParam) && required {
+	if r.URL.Query().Get(uidQueryParam) == "" && required {
 		return "", fmt.Errorf("does not contain uid key")
 	}
 
