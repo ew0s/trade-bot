@@ -29,3 +29,15 @@ jobs:
           version: v1.46.2
           working-directory: .
           args: -v -c golangci.yml ./...
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.16
+      - uses: actions/checkout@v3
+      - name: testing
+        run: go test -race -vet=off ./...
+

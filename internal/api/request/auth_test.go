@@ -63,7 +63,7 @@ func TestSignIn_Bind_Error(t *testing.T) {
 				"uid": "",
 			},
 			reqBody:            `{"password": "password"}`,
-			expectedErrMessage: "getting uid from query: validating uid: uuid: incorrect UUID length 0 in string \"\"",
+			expectedErrMessage: "getting uid from query: does not contain uid key",
 		},
 		{
 			name: "invalid body passed",
