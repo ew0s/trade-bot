@@ -49,3 +49,7 @@ migrate-add-timestamp:
 # See https://github.com/rubenv/sql-migrate
 .PHONY: install-migrator
 	go install -mod=readonly github.com/rubenv/sql-migrate/...
+
+.PHONY: lint
+lint:
+	golangci-lint run -v -c golangci.yml ./...
