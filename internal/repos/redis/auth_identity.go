@@ -19,7 +19,7 @@ func NewIdentity(client *redis.Client) *Identity {
 }
 
 func (r *Identity) SetAccessToken(ctx context.Context, userUID string, tokenDetails entities.TokenDetails) error {
-	expiration := tokenDetails.ExpiresAt.Sub(time.Now())
+	expiration := time.Until(tokenDetails.ExpiresAt)
 
 	if err := r.client.Set(ctx, tokenDetails.AccessUUID, userUID, expiration).Err(); err != nil {
 		return fmt.Errorf("setting to redis: %w", err)
